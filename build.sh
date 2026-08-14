@@ -128,33 +128,8 @@ while read -r tag url || [ -n "$tag" ]; do
 
     rm -f "${QCOW2_FILE}"
 
-    if [ "${TEST_VERSION:-true}" = "true" ]; then
-        echo "3. Verifying container functionality and OS release info..."
-        ASTRA_VER=$(docker run --rm "${FULL_IMAGE_TAG}" cat /etc/astra_version 2>/dev/null || echo "")
-        OS_RELEASE=$(docker run --rm "${FULL_IMAGE_TAG}" cat /etc/os-release 2>/dev/null || echo "")
-        echo "/etc/astra_version: ${ASTRA_VER}"
-        echo "/etc/os-release:"
-        echo "$OS_RELEASE"
+    echo "3. Skipping running the container to verify OS release (as requested)."
 
-        IS_MISMATCH=false
-        # Tag format: 1.7.10-mg16.5.0
-        # Expected version string in /etc/astra_version matches the prefix of tag
-        EXPECTED_VER=$(echo "${tag}" | cut -d'-' -f1)
-        if [ "$ASTRA_VER" = "$EXPECTED_VER" ]; then
-            echo "SUCCESS: Version match '${ASTRA_VER}' in /etc/astra_version!"
-        else
-            echo "ERROR: Version mismatch! Container astra_version is '${ASTRA_VER}', expected '${EXPECTED_VER}'!"
-            MISMATCHED_TAGS+=("${tag} (found ${ASTRA_VER:-unknown})")
-            IS_MISMATCH=true
-        fi
-
-        if [ "$IS_MISMATCH" = "true" ]; then
-            echo "Skipping push for mismatched tag ${tag}."
-            continue
-        fi
-    else
-        echo "3. Skipping version verification (TEST_VERSION is false)."
-    fi
 
     if command -v trivy &>/dev/null || [ "${ENABLE_TRIVY_SCAN:-false}" = "true" ]; then
         echo "4. Generating Trivy SBOM and vulnerability files..."

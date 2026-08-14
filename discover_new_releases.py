@@ -108,5 +108,20 @@ def main():
 
     print(f"Overwrote {RELEASES_FILE}")
 
+    new_discoveries = [item for item in final_releases if item["tag"] not in existing_tags]
+    if new_discoveries:
+        first_new = new_discoveries[0]
+        print(f"Discovered {len(new_discoveries)} new releases.")
+        if "GITHUB_ENV" in os.environ:
+            with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as f:
+                f.write("NEW_RELEASE_FOUND=true\n")
+                f.write(f"NEW_TAG={first_new['tag']}\n")
+                f.write(f"NEW_URL={first_new['url']}\n")
+    else:
+        print("No new releases discovered.")
+        if "GITHUB_ENV" in os.environ:
+            with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as f:
+                f.write("NEW_RELEASE_FOUND=false\n")
+
 if __name__ == "__main__":
     main()

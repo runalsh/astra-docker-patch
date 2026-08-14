@@ -42,7 +42,6 @@ The `build.sh` script supports the following configuration options:
 
 | Variable | Default | Description |
 |---|---|---|
-| `TEST_VERSION` | `true` | Verifies `/etc/astra_version` and `/etc/os-release` inside the container after import. |
 | `PUSH_TO_DOCKERHUB` | `false` | Automatically pushes built images to Docker Hub. |
 | `PUSH_TO_GHCR` | `false` | Automatically pushes built images to GHCR. |
 | `CLEANUP_DOCKER_IMAGES` | `false` | Deletes local Docker images after build and push. |
