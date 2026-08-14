@@ -47,7 +47,7 @@ The `build.sh` script supports the following configuration options:
 | `CLEANUP_DOCKER_IMAGES` | `false` | Deletes local Docker images after build and push. |
 | `SKIP_EXISTS_CHECK` | `false` | Forces building and importing all tags regardless of remote registry status. |
 | `ENABLE_TRIVY_SCAN` | `false` | Runs security scanning using Trivy (if present on the host). |
-| `ALPINE_IMAGE` | `dockerhub.timeweb.cloud/library/alpine:latest` | Alpine mirror image used for raw disk mounting. |
+| `ALPINE_IMAGE` | `alpine:latest` | Alpine image used for raw disk mounting. |
 
 ---
 

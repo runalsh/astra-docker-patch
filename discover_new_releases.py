@@ -54,7 +54,7 @@ def main():
 
         astra_ver = m.group(1)
         mg_ver = m.group(2)
-        tag = f"{astra_ver}-{mg_ver}"
+        tag = astra_ver
 
         # Extract filename (removing leading slash)
         filename = uri.lstrip("/")

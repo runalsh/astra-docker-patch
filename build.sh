@@ -4,7 +4,7 @@ set -euo pipefail
 # Configurable Docker Hub image name and сustom sifting
 IMAGE_NAME="runalsh/astra-patch"
 RELEASES_FILE="releases.txt"
-ALPINE_IMAGE="dockerhub.timeweb.cloud/library/alpine:latest"
+ALPINE_IMAGE="alpine:latest"
 MISMATCHED_TAGS=()
 
 if [ ! -f "$RELEASES_FILE" ]; then
@@ -37,11 +37,15 @@ while read -r tag url || [ -n "$tag" ]; do
     
     IS_LATEST_MAJOR=false
     if [ "$MAJOR_VER" = "1.7" ] && [ "$tag" = "$LATEST_17" ]; then
-        IS_LATEST_MAJOR=true
-        echo "Tag ${tag} is latest for Astra 1.7. Will tag as 1.7!"
+        if ! grep -q "^1\.7$" "$RELEASES_FILE"; then
+            IS_LATEST_MAJOR=true
+            echo "Tag ${tag} is latest for Astra 1.7. Will tag as 1.7!"
+        fi
     elif [ "$MAJOR_VER" = "1.8" ] && [ "$tag" = "$LATEST_18" ]; then
-        IS_LATEST_MAJOR=true
-        echo "Tag ${tag} is latest for Astra 1.8. Will tag as 1.8!"
+        if ! grep -q "^1\.8$" "$RELEASES_FILE"; then
+            IS_LATEST_MAJOR=true
+            echo "Tag ${tag} is latest for Astra 1.8. Will tag as 1.8!"
+        fi
     fi
 
     IS_OVERALL_LATEST=false
