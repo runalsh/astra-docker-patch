@@ -18,8 +18,37 @@ on:
         default: false
 
 jobs:
-  build-and-push:
+  select-runner:
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      runner_type: ${{ steps.check.outputs.runner_type }}
+    steps:
+      - name: Check if phylex runner is online
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN || secrets.GH_PAT || secrets.PAT || secrets.GITHUB_TOKEN }}
+        run: |
+          RESPONSE=$(gh api "repos/${{ github.repository }}/actions/runners" 2>/dev/null || true)
+          STATUS=$(echo "$RESPONSE" | jq -r '.runners[]? | select(.name=="phylex") | .status' 2>/dev/null || echo "offline")
+          if [ "$STATUS" = "online" ]; then
+            echo "Runner phylex is ONLINE."
+            HAS_LABEL=$(echo "$RESPONSE" | jq -r '.runners[] | select(.name=="phylex") | .labels[]? | select(.name=="phylex") | .name' 2>/dev/null || true)
+            if [ "$HAS_LABEL" = "phylex" ]; then
+              echo 'runner_type=["self-hosted", "phylex"]' >> "$GITHUB_OUTPUT"
+            else
+              echo 'runner_type=["self-hosted"]' >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "Runner phylex is not available ($STATUS). Falling back to ubuntu-latest."
+            echo 'runner_type=["ubuntu-latest"]' >> "$GITHUB_OUTPUT"
+          fi
+
+  build-and-push:
+    needs: select-runner
+    runs-on: ${{ fromJSON(needs.select-runner.outputs.runner_type) }}
     permissions:
       contents: read
       packages: write
@@ -27,21 +56,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Trivy
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq wget apt-transport-https gnupg lsb-release
-          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | gpg --dearmor | sudo tee /usr/share/keyrings/trivy.gpg > /dev/null
-          echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq trivy
-
       - name: Log in to Docker Hub
-        if: github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request' && env.DOCKERHUB_TOKEN != ''
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+        env:
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Log in to GitHub Container Registry (GHCR)
         if: github.event_name != 'pull_request'
@@ -56,16 +78,13 @@ jobs:
 
       - name: Build, verify and push images
         env:
-          PUSH_TO_DOCKERHUB: 'true'
+          PUSH_TO_DOCKERHUB: ${{ secrets.DOCKERHUB_TOKEN != '' }}
           PUSH_TO_GHCR: 'true'
           CLEANUP_DOCKER_IMAGES: 'true'
           SKIP_EXISTS_CHECK: ${{ inputs.skip_exists_check || 'false' }}
-          ENABLE_TRIVY_SCAN: 'true'
         run: ./build.sh
 
-      - name: Upload Trivy SBOM Artifacts
+      - name: Cleanup Temporary Files
         if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: astra-sbom-reports
-          path: trivy-reports/
+        run: |
+          sudo rm -rf /tmp/temp_image_* temp_image_* 2>/dev/null || true

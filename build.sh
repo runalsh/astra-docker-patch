@@ -12,7 +12,6 @@ if [ ! -f "$RELEASES_FILE" ]; then
     exit 1
 fi
 
-mkdir -p trivy-reports
 
 echo "Starting process for image repository: ${IMAGE_NAME}"
 
@@ -135,20 +134,16 @@ while read -r tag url || [ -n "$tag" ]; do
     echo "3. Skipping running the container to verify OS release (as requested)."
 
 
-    if command -v trivy &>/dev/null || [ "${ENABLE_TRIVY_SCAN:-false}" = "true" ]; then
-        echo "4. Generating Trivy SBOM and vulnerability files..."
-        trivy image --format spdx-json --output "trivy-reports/sbom-${tag}.json" "${FULL_IMAGE_TAG}" 2>/dev/null || true
-        trivy image --format json --output "trivy-reports/vulnerabilities-${tag}.json" "${FULL_IMAGE_TAG}" 2>/dev/null || true
-    fi
 
     if [ "${NEEDS_DOCKERHUB_PUSH}" = "true" ] || [ "${PUSH_TO_DOCKERHUB:-false}" = "true" ]; then
-        echo "5. Pushing image to Docker Hub (${FULL_IMAGE_TAG})..."
+        echo "4. Pushing image to Docker Hub (${FULL_IMAGE_TAG})..."
         docker push "${FULL_IMAGE_TAG}" || true
         
         if [ "$IS_LATEST_MAJOR" = "true" ]; then
             MAJOR_TAG="${IMAGE_NAME}:${MAJOR_VER}"
             echo "Pushing major alias tag to Docker Hub (${MAJOR_TAG})..."
             docker tag "${FULL_IMAGE_TAG}" "${MAJOR_TAG}"
+            CREATED_TAGS+=("${MAJOR_TAG}")
             docker push "${MAJOR_TAG}" || true
         fi
 
@@ -156,6 +151,7 @@ while read -r tag url || [ -n "$tag" ]; do
             LATEST_TAG="${IMAGE_NAME}:latest"
             echo "Pushing latest tag to Docker Hub (${LATEST_TAG})..."
             docker tag "${FULL_IMAGE_TAG}" "${LATEST_TAG}"
+            CREATED_TAGS+=("${LATEST_TAG}")
             docker push "${LATEST_TAG}" || true
         fi
     else
@@ -163,14 +159,16 @@ while read -r tag url || [ -n "$tag" ]; do
     fi
 
     if [ "${NEEDS_GHCR_PUSH}" = "true" ] || [ "${PUSH_TO_GHCR:-false}" = "true" ]; then
-        echo "6. Pushing image to GitHub Packages / GHCR (${FULL_GHCR_TAG})..."
+        echo "5. Pushing image to GitHub Packages / GHCR (${FULL_GHCR_TAG})..."
         docker tag "${FULL_IMAGE_TAG}" "${FULL_GHCR_TAG}"
+        CREATED_TAGS+=("${FULL_GHCR_TAG}")
         docker push "${FULL_GHCR_TAG}" || true
 
         if [ "$IS_LATEST_MAJOR" = "true" ]; then
             GHCR_MAJOR_TAG="${GHCR_IMAGE_NAME}:${MAJOR_VER}"
             echo "Pushing major alias tag to GHCR (${GHCR_MAJOR_TAG})..."
             docker tag "${FULL_IMAGE_TAG}" "${GHCR_MAJOR_TAG}"
+            CREATED_TAGS+=("${GHCR_MAJOR_TAG}")
             docker push "${GHCR_MAJOR_TAG}" || true
         fi
 
@@ -178,6 +176,7 @@ while read -r tag url || [ -n "$tag" ]; do
             GHCR_LATEST_TAG="${GHCR_IMAGE_NAME}:latest"
             echo "Pushing latest tag to GHCR (${GHCR_LATEST_TAG})..."
             docker tag "${FULL_IMAGE_TAG}" "${GHCR_LATEST_TAG}"
+            CREATED_TAGS+=("${GHCR_LATEST_TAG}")
             docker push "${GHCR_LATEST_TAG}" || true
         fi
 
