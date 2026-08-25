@@ -4,6 +4,9 @@ set -euo pipefail
 # Configurable Docker Hub image name and сustom sifting
 # Pre-cleanup temporary files from previous runs
 rm -rf /tmp/astra-patch_* temp_image_*
+if [ "${CLEANUP_DOCKER_IMAGES:-true}" = "true" ]; then
+    docker images --format '{{.Repository}}:{{.Tag}}' | grep -E '^((ghcr\.io/)?runalsh/astra-patch)(:|$)' | xargs -r docker rmi -f 2>/dev/null || true
+fi
 
 IMAGE_NAME="runalsh/astra-patch"
 RELEASES_FILE="releases.txt"
@@ -210,4 +213,9 @@ if [ ${#MISMATCHED_TAGS[@]} -gt 0 ]; then
     exit 1
 else
     echo "All images processed and verified successfully!"
+fi
+
+if [ "${CLEANUP_DOCKER_IMAGES:-true}" = "true" ]; then
+    echo "Performing final Docker cleanup of all astra-patch images..."
+    docker images --format '{{.Repository}}:{{.Tag}}' | grep -E '^((ghcr\.io/)?runalsh/astra-patch)(:|$)' | xargs -r docker rmi -f 2>/dev/null || true
 fi

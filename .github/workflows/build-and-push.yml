@@ -84,7 +84,8 @@ jobs:
           SKIP_EXISTS_CHECK: ${{ inputs.skip_exists_check || 'false' }}
         run: ./build.sh
 
-      - name: Cleanup Temporary Files
+      - name: Cleanup Temporary Files and Docker Images
         if: always()
         run: |
           sudo rm -rf /tmp/astra-patch_* temp_image_* 2>/dev/null || true
+          docker images --format '{{.Repository}}:{{.Tag}}' | grep -E '^((ghcr\.io/)?runalsh/astra-patch)(:|$)' | xargs -r docker rmi -f 2>/dev/null || true
