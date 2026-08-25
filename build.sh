@@ -2,6 +2,9 @@
 set -euo pipefail
 
 # Configurable Docker Hub image name and сustom sifting
+# Pre-cleanup temporary files from previous runs
+rm -rf /tmp/astra-patch_* temp_image_*
+
 IMAGE_NAME="runalsh/astra-patch"
 RELEASES_FILE="releases.txt"
 ALPINE_IMAGE="alpine:latest"
@@ -103,16 +106,16 @@ while read -r tag url || [ -n "$tag" ]; do
     
     docker run --rm --privileged -v "${ABS_QCOW2_PATH}:/work/image.qcow2:ro" "${ALPINE_IMAGE}" sh -c '
         apk add --no-cache qemu-img parted >/dev/null 2>&1
-        mkdir -p /tmp/mount_rootfs
+        mkdir -p /tmp/astra-patch_mount
         
         # Convert QCOW2 to raw disk format
-        qemu-img convert -O raw /work/image.qcow2 /tmp/disk.raw
+        qemu-img convert -O raw /work/image.qcow2 /tmp/astra-patch_disk.raw
         
         # Detect Linux partition (typically partition 2)
-        START_SECTOR=$(parted -s /tmp/disk.raw unit s print | awk '\''$1=="2" {print $2}'\'' | tr -d '\''s'\'')
+        START_SECTOR=$(parted -s /tmp/astra-patch_disk.raw unit s print | awk '\''$1=="2" {print $2}'\'' | tr -d '\''s'\'')
         if [ -z "$START_SECTOR" ]; then
             # fallback to searching for ext4 partition
-            START_SECTOR=$(parted -s /tmp/disk.raw unit s print | grep -i "ext4" | awk '\''{print $2}'\'' | tr -d '\''s'\'')
+            START_SECTOR=$(parted -s /tmp/astra-patch_disk.raw unit s print | grep -i "ext4" | awk '\''{print $2}'\'' | tr -d '\''s'\'')
         fi
         
         if [ -z "$START_SECTOR" ]; then
@@ -123,10 +126,10 @@ while read -r tag url || [ -n "$tag" ]; do
         OFFSET=$((START_SECTOR * 512))
         
         # Mount loop partition read-only and export it as tar
-        mount -o loop,ro,offset=${OFFSET} /tmp/disk.raw /tmp/mount_rootfs
-        tar -C /tmp/mount_rootfs -cf - .
-        umount /tmp/mount_rootfs
-        rm -f /tmp/disk.raw
+        mount -o loop,ro,offset=${OFFSET} /tmp/astra-patch_disk.raw /tmp/astra-patch_mount
+        tar -C /tmp/astra-patch_mount -cf - .
+        umount /tmp/astra-patch_mount
+        rm -f /tmp/astra-patch_disk.raw
     ' | docker import - "${FULL_IMAGE_TAG}"
 
     rm -f "${QCOW2_FILE}"
