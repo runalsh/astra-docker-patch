@@ -16,3 +16,4 @@
 1.8.4 https://registry.astralinux.ru/artifactory/mg-generic/alse/cloudinit/alse-1.8.4-base-cloudinit-mg16.0.0-amd64.qcow2
 1.8.5 https://registry.astralinux.ru/artifactory/mg-generic/alse/cloudinit/alse-1.8.5-base-cloudinit-mg16.2.0-amd64.qcow2
 1.8.6 https://registry.astralinux.ru/artifactory/mg-generic/alse/cloudinit/alse-1.8.6-base-cloudinit-mg16.4.0-amd64.qcow2
+1.8.7 https://registry.astralinux.ru/artifactory/mg-generic/alse/cloudinit/alse-1.8.7-base-cloudinit-mg16.7.0-amd64.qcow2
